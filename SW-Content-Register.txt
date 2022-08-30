@@ -1,0 +1,39 @@
+Coremark                   Name: Coremark Source Code 
+                           Version: 1.0.1                                   
+                           Outgoing License: Apache License 2.0                
+                           License File: dvs_pvt_sensor/app/common/coremark/LICENSE.md                       
+                           Format: source code, header files                 
+                           Description: Source code for running Coremark.
+                           Location: dvs_pvt_sensor/app/common/coremark
+                           Origin: Embedded Microprocessor Benchmark Consortium (EEMBC)
+                           Url: https://github.com/eembc/coremark
+
+freertos                   Name: FreeRTOS                                    
+                           Version: 202012.00.0                              
+                           Outgoing License: MIT                             
+                           License File: dvs_pvt_sensor/app/common/freertos/LICENSE            
+                           Format: header files                               
+                           Description: FreeRTOS config for DVS PVT Application                                           
+                           Location: dvs_pvt_sensor/app/common/freertos                       
+                           Origin: Real Time Engineers, Ltd. (MIT)           
+                           Url: https://aws.amazon.com/freertos/
+
+PVT Library API            Name: PVT Library API
+                           Version: 1.0.0                               
+                           Outgoing License: BSD-3-Clause                    
+                           License File: COPYING-BSD-3                       
+                           Format: header files                 
+                           Description: PVT Library API.
+                           Location: dvs_pvt_sensor/app/common/pvt_lib
+                           Origin: NXP (BSD-3-Clause)
+
+MIMXRT595-EVK              Name: MCU Application support for MIMXRT595-EVK 
+                           Version: 1.0.0                                    
+                           Outgoing License: BSD-3-Clause                    
+                           License File: COPYING-BSD-3                       
+                           Format: source code, header files                 
+                           Description: Software support for running the     
+                           voltage scaling using PVT sensor application 
+                           on MIMXRT595-EVK.
+                           Location: dvs_pvt_sensor/app/evkmimxrt595
+                           Origin: NXP (BSD-3-Clause) 
