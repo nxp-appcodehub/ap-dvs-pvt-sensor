@@ -125,8 +125,6 @@ void BOARD_InitPmic(void)
     PCA9420_GetDefaultConfig(&pca9420Config);
     pca9420Config.I2C_SendFunc    = BOARD_PMIC_I2C_Send;
     pca9420Config.I2C_ReceiveFunc = BOARD_PMIC_I2C_Receive;
-    /* Disable active discharge prevent voltage spike when changing voltage */
-    pca9420Config.disableSw1Bleed = true;
     PCA9420_Init(&pca9420Handle, &pca9420Config);
 }
 
