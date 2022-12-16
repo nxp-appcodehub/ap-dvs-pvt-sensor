@@ -16,7 +16,7 @@ This repository holds the [Dynamic Voltage Scaling using PVT Sensor App SW Pack]
 ## Assemble the Application
 You need to have both Git and [West](https://docs.zephyrproject.org/latest/develop/west/index.html) installed, then execute below commands to gather the whole APP-SW-PACKS/DVS-PVT-SENSOR delivery at revision ```${revision}``` and place it in a folder named ```appswpacks_dvs_pvt_sensor```. 
 ```
-west init -m https://github.com/NXPmicro/appswpacks-dvs-pvt-sensor --mr ${revision} appswpacks_dvs_pvt_sensor
+west init -m https://github.com/nxp-mcuxpresso/appswpacks-dvs-pvt-sensor --mr ${revision} appswpacks_dvs_pvt_sensor
 cd appswpacks_dvs_pvt_sensor
 west update
 ```

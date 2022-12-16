@@ -14,11 +14,11 @@
 manifest:
 
   remotes:
-    - name: nxpmicro
-      url-base: https://github.com/NXPmicro
+    - name: nxp-mcuxpresso
+      url-base: https://github.com/nxp-mcuxpresso
 
   defaults:
-    remote: nxpmicro
+    remote: nxp-mcuxpresso
 
   projects:
     - name: mcux-sdk
