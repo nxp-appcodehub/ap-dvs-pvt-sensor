@@ -11,33 +11,15 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define BOARD_XTAL32K_CLK_HZ                          32768U  /*!< Board xtal32K frequency in Hz */
-
-/*******************************************************************************
- ************************ BOARD_InitBootClocks function ************************
- ******************************************************************************/
-
-#if defined(__cplusplus)
-extern "C" {
-#endif /* __cplusplus*/
-
-/*!
- * @brief This function executes default configuration of clocks.
- *
- */
-void BOARD_InitBootClocks(void);
-
-#if defined(__cplusplus)
-}
-#endif /* __cplusplus*/
-
+#define BOARD_SYSOSC_SETTLING_US 220U   /*!< Board System oscillator settling time in us */
+#define BOARD_XTAL32K_CLK_HZ 32768U     /*!< Board xtal32K frequency in Hz */
+#define BOARD_XTAL_SYS_CLK_HZ 24000000U /*!< Board xtal frequency in Hz */
 /*******************************************************************************
  ********************** Configuration BOARD_BootClockRUN ***********************
  ******************************************************************************/
 /*******************************************************************************
  * Definitions for BOARD_BootClockRUN configuration
  ******************************************************************************/
-#define BOARD_BOOTCLOCKRUN_CORE_CLOCK             192000000U  /*!< Core clock frequency: 192000000Hz */
 
 /*******************************************************************************
  * API for BOARD_BootClockRUN configuration
@@ -50,7 +32,7 @@ extern "C" {
  * @brief This function executes configuration of clocks.
  *
  */
-void BOARD_BootClockRUN(void);
+void BOARD_BootClockFroRUN(uint32_t fro_trim_hz);
 
 #if defined(__cplusplus)
 }

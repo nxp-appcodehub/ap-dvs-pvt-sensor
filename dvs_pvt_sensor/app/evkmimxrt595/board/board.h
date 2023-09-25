@@ -28,7 +28,7 @@
 #define BOARD_DEBUG_UART_CLK_FREQ CLOCK_GetFlexcommClkFreq(0)
 #define BOARD_DEBUG_UART_FRG_CLK \
     (&(const clock_frg_clk_config_t){0U, kCLOCK_FrgFroDiv4, 255U, 0U}) /*!< Select FRG0 mux as FRO_DIV4 */
-#define BOARD_DEBUG_UART_CLK_ATTACH kFRG_to_FLEXCOMM0
+#define BOARD_DEBUG_UART_CLK_ATTACH kFRO_DIV4_to_FLEXCOMM0
 #define BOARD_UART_IRQ_HANDLER      FLEXCOMM0_IRQHandler
 #define BOARD_UART_IRQ              FLEXCOMM0_IRQn
 

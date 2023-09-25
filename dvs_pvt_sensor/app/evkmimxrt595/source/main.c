@@ -4,6 +4,8 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
+
+/* Drivers */
 #include "fsl_device_registers.h"
 #include "fsl_debug_console.h"
 #include "fsl_pca9420.h"
@@ -11,11 +13,16 @@
 #include "fsl_power.h"
 #include "fsl_clock.h"
 #include "fsl_utick.h"
+
+/* Libraries */
 #include "pvt.h"
+
+/* Board */
 #include "board.h"
 #include "pin_mux.h"
 #include "clock_config.h"
 #include "pmic_support.h"
+#include "app_config.h"
 
 /* FreeRTOS kernel includes. */
 #include "FreeRTOS.h"
@@ -27,45 +34,18 @@
  * Definitions
  ******************************************************************************/
 /**
- * - 0: Disables PVT task. Can be used to profile impact of PVT task on performance.
- * - 1: Enables the PVT task.
- */
-#define ENABLE_PVT                 1
-/**
- * How often for PVT task to check if VDDCORE can go lower.
- */
-#define PVT_TASK_WAIT_MS           10000U
-/**
- * Amount if time it takes the PMIC SW1_OUT to stabilize after decreasing it 1 step.
- */
-#define PMIC_SETTLING_TIME_MS      5U
-/**
- * Time to wait between enabling the PVT ring oscillator and reading the delay.
- */
-#define PVT_RING_OSC_WAIT_TIME_MS  500U
-/*
- * Amount of time to wait in between Coremark runs.
- * Allows idle task to activate low power mode (deep sleep).
- */
-#define WORKLOAD_DELAY_MS          5000U
-/**
- * Task priorities.
- * PVT Should be highest priority so it can increase VDDCORE ASAP if the PVT interrupt triggers.
- */
-#define workload_task_PRIORITY     (configMAX_PRIORITIES - 2)
-#define pvt_task_PRIORITY          (configMAX_PRIORITIES - 1)
-/**
  * Read the silicon ID.
  */
 #define SILICONREV_ID_MINOR(x)     (x & SYSCTL0_SILICONREV_ID_MINOR_MASK)
 #define SILICONREV_ID_MAJOR(x)     ((x & SYSCTL0_SILICONREV_ID_MAJOR_MASK) >> SYSCTL0_SILICONREV_ID_MAJOR_SHIFT)
+
 /**
  * PMIC defines.
  */
-#define MIN_VDDCORE                kPCA9420_Sw1OutVolt0V800
-#define MAX_VDDCORE                kPCA9420_Sw1OutVolt0V900
-#define PMIC_25MV_STEP             ((pca9420_sw1_out_t) 1)
-#define CURRENT_VDDCORE_MV()       ((uint32_t) (500 + (BOARD_GetActiveVddcore() * 25)))
+#define PMIC_MIN_VOLT_MV           500
+#define PMIC_STEP_SIZE_MV          25
+#define CURRENT_VDDCORE_MV()       ((uint32_t) (PMIC_MIN_VOLT_MV + (BOARD_GetActiveVddcore() * PMIC_STEP_SIZE_MV)))
+
 /*
  * GPIO to profile the PVT task.
  */
@@ -76,6 +56,7 @@
                                     GPIO_PinInit(GPIO, PROFILE_PVT_TASK_PORT, PROFILE_PVT_TASK_PIN, &gpio_init);}
 #define SET_PVT_PROFILE_PIN()      (GPIO->SET[PROFILE_PVT_TASK_PORT] = 1U << PROFILE_PVT_TASK_PIN)
 #define CLR_PVT_PROFILE_PIN()      (GPIO->CLR[PROFILE_PVT_TASK_PORT] = 1U << PROFILE_PVT_TASK_PIN)
+
 /*
  * Timer to signal the PVT task to run.
  */
@@ -84,12 +65,32 @@
 #define INIT_WAIT_TIMER()          {CLOCK_AttachClk(WAIT_TIMER_CLK); \
                                     UTICK_Init(WAIT_TIMER);}
 #define START_WAIT_TIMER(ms,cb)    (UTICK_SetTick(WAIT_TIMER, kUTICK_Onetime, ms*1000, cb))
+
+#define APP_INFO                   "PVT Application Software Pack\r\n\n" \
+                                   "This application uses the PMIC.\r\n" \
+                                   "Make sure JS28 is set to [2:3] and JS25 is on.\r\n\n" \
+                                   "You can monitor the following:\r\n" \
+                                   "    JP27[2]: core frequency/200\r\n" \
+                                   "    JS25[1]: VDDCORE\r\n" \
+                                   "    J28[1] : PVT Task\r\n\n" \
+                                   "PVT Lib Version = 0x%06x\r\n" \
+                                   "SILICON_REV_ID = %X:%X\r\n" \
+                                   "UUID = 0x%X_%X_%X_%X\r\n\n" \
+                                   "\033[33;1m" \
+                                   "NOTE: " \
+                                   "\033[0m" \
+                                   "Coremark is not optimized. Score should only be used to check " \
+                                   "the impact of enabling the PVT task on app performance.\r\n\n", \
+                                   PVT_GetLibVersion(), SILICONREV_ID_MAJOR(SYSCTL0->SILICONREV_ID), \
+                                   SILICONREV_ID_MINOR(SYSCTL0->SILICONREV_ID), SYSCTL0->UUID[3], \
+                                   SYSCTL0->UUID[2], SYSCTL0->UUID[1], SYSCTL0->UUID[0]
 /*******************************************************************************
  * Variables
  ******************************************************************************/
 TaskHandle_t pvt_task_handle;
 SemaphoreHandle_t vddcore_mutex = NULL;
 volatile bool ring_osc_ready = false;
+uint32_t main_clk_freq_hz, min_vddcore, max_vddcore;
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
@@ -144,28 +145,10 @@ int main(void) {
 
     /* Initialize board hardware. */
     BOARD_InitPins();
-    BOARD_BootClockRUN();   //Core clock is fixed at FRO 192MHz
+    BOARD_BootClockFroRUN(FRO_TRIM_FREQ_HZ);
     BOARD_InitDebugConsole();
-    
-    PRINTF("PVT Application Software Pack\r\n\n" \
-           "This application uses the PMIC.\r\n" \
-           "Make sure JS28 is set to [2:3] and JS25 is on.\r\n\n" \
-           "You can monitor the following:\r\n" \
-           "    JP27[2]: core frequency/200\r\n" \
-           "    JS25[1]: VDDCORE\r\n" \
-           "    J28[1] : PVT Task\r\n\n" \
-           "PVT Lib Version = 0x%06x\r\n" \
-           "SILICON_REV_ID = %X:%X\r\n" \
-           "UUID = 0x%X_%X_%X_%X\r\n\n" \
-           "\033[33;1m" \
-           "NOTE: " \
-           "\033[0m" \
-           "Coremark is not optimized. Score should only be used to check " \
-           "the impact of enabling the PVT task on app performance.\r\n\n", \
-           PVT_GetLibVersion(), \
-           SILICONREV_ID_MAJOR(SYSCTL0->SILICONREV_ID), \
-           SILICONREV_ID_MINOR(SYSCTL0->SILICONREV_ID), \
-           SYSCTL0->UUID[3], SYSCTL0->UUID[2], SYSCTL0->UUID[1], SYSCTL0->UUID[0]);
+
+    PRINTF(APP_INFO);
 
     /* Configure PMIC */
     BOARD_InitPmicPins();
@@ -191,7 +174,7 @@ int main(void) {
             ;
     }
 #endif
-    
+
     if (xTaskCreate(workload_task, "Workload_task", configMINIMAL_STACK_SIZE + 1000, NULL, workload_task_PRIORITY, NULL) !=
         pdPASS)
     {
@@ -299,34 +282,37 @@ static void config_pvt(void) {
     pvt_delay_t delay;
     status_t status;
     bool read_from_otp = true;
-    
+
     PVT_Init();
-    
+
     /* Disable LVD interrupts  and set it to the lowest setting */
     PMC->CTRL = 0;
     PMC->LVDCORECTRL = 0;
 
-    /* Set Active VDDCORE to 0.9V */
+    /* Set Active VDDCORE to max for current FRO trim */
     BOARD_SetActiveVddcore(MAX_VDDCORE);
-    
+
     /* Try to read delay from OTP. If unsuccessful, try to read from ring oscillator */
-    status = PVT_ReadDelayFromOTP(false, CLOCK_GetFreq(kCLOCK_CoreSysClk),  &delay);
-    if (status != kStatus_Success) {        
+    status = PVT_ReadDelayFromOTP(false, CLOCK_GetFreq(kCLOCK_CoreSysClk), FRO_TRIM_FREQ_HZ, &delay);
+    PRINTF("OTP: %d\r\n", delay);
+    status = kStatus_Fail;
+    if (status != kStatus_Success) {
         /* VDDCORE must == 0.9V and and temp. == 25C before calling PVT_ReadDelayFromRingOsc */
         PRINTF("\033[35;1m" \
                "WARNING: " \
                "\033[0m" \
                "Reading delay from Ring Osc. Make sure the following are met:\r\n" \
-                "    VDDCORE     == 0.9V\r\n" \
+                "    VDDCORE     == %dmV\r\n" \
                 "    Temperature == 25C\r\n\n" \
-                "Press ENTER to continue\r\n\n");
+                "Press ENTER to continue\r\n\n", PMIC_MIN_VOLT_MV + \
+                ((uint32_t)MAX_VDDCORE * PMIC_STEP_SIZE_MV));
         GETCHAR();
         read_pvt_delay_from_ring_osc(&delay);
         read_from_otp = false;
     }
-    
-    PRINTF("%s%u\r\n\n", (read_from_otp == true) ? "OTP Delay = " : "Ring Osc. Delay = ", delay);
 
+    PRINTF("%s%u\r\n\n", (read_from_otp == true) ? "OTP Delay = " : "Ring Osc. Delay = ", delay);
+    GETCHAR();
     /* Enable interrupt */
     NVIC_ClearPendingIRQ((IRQn_Type) PVT0_IRQn);
     EnableIRQ((IRQn_Type) PVT0_IRQn);
@@ -343,12 +329,12 @@ static void config_pvt(void) {
  */
 static void read_pvt_delay_from_ring_osc(uint8_t *delay) {
    status_t status;
-   PVT_EnableRingOsc();
    ring_osc_ready = false;
+   PVT_EnableRingOsc();
    /* Use a timer to wait 500ms because it is more accurate */
    START_WAIT_TIMER(PVT_RING_OSC_WAIT_TIME_MS, pvt_ring_osc_wait_timer_callback);
    while (!ring_osc_ready);
-   status = PVT_ReadDelayFromRingOsc(PVT_RING_OSC_WAIT_TIME_MS, delay);
+   status = PVT_ReadDelayFromRingOsc(PVT_RING_OSC_WAIT_TIME_MS, FRO_TRIM_FREQ_HZ, delay);
    PVT_DisableRingOsc();
    if (status != kStatus_Success) {
        PRINTF("\033[31;1m" \

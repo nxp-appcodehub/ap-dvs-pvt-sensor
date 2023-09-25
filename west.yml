@@ -22,11 +22,12 @@ manifest:
 
   projects:
     - name: mcux-sdk
-      revision: MCUX_2.11.0
+      revision: MCUX_2.13.1
       path: core
       import:
         name-allowlist:
           - FreeRTOS-Kernel
+          - CMSIS_5
 
   self:
     path: examples

@@ -88,109 +88,43 @@ __attribute__((weak)) void BOARD_SetFlexspiClock(FLEXSPI_Type *base, uint32_t sr
 }
 
 /*******************************************************************************
- ************************ BOARD_InitBootClocks function ************************
+ * Code for BOARD_BootClockFroRUN configuration
  ******************************************************************************/
-void BOARD_InitBootClocks(void)
+void BOARD_BootClockFroRUN(uint32_t fro_trim_hz)
 {
-    BOARD_BootClockRUN();
-}
+    assert(fro_trim_hz == 192000000U || fro_trim_hz == 250000000U);
 
-/*******************************************************************************
- ********************** Configuration BOARD_BootClockRUN ***********************
- ******************************************************************************/
-/* clang-format off */
-/* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
-!!Configuration
-name: BOARD_BootClockRUN
-called_from_default_init: true
-outputs:
-- {id: CLKOUT_clock.outFreq, value: 960 KHz}
-- {id: FLEXSPI0_clock.outFreq, value: 96 MHz}
-- {id: LPOSC1M_clock.outFreq, value: 1 MHz}
-- {id: OSTIMER_clock.outFreq, value: 1 MHz}
-- {id: SYSTICK_clock.outFreq, value: 96 MHz}
-- {id: System_clock.outFreq, value: 192 MHz}
-- {id: TRACE_clock.outFreq, value: 96 MHz}
-- {id: USBPHY_clock.outFreq, value: 48 MHz}
-- {id: WAKE_32K_clock.outFreq, value: 976.5625 Hz}
-settings:
-- {id: AUDIOPLL0_PFD0_CLK_GATE, value: Enabled}
-- {id: CLKCTL.A32KHZWAKECLKDIV.scale, value: '32', locked: true}
-- {id: CLKCTL.AUDIOPLL0_PFD0_BYPASS.sel, value: CLKCTL.AUDIOPLL0CLKSEL}
-- {id: CLKCTL.AUDIOPLL0_PFD0_DIV.scale, value: '26', locked: true}
-- {id: CLKCTL.AUDIOPLLCLKDIV.scale, value: '10', locked: true}
-- {id: CLKCTL.AUDIO_PLL0_PFD0_MUL.scale, value: '18', locked: true}
-- {id: CLKCTL.CLKOUTFCLKDIV.scale, value: '100', locked: true}
-- {id: CLKCTL.CLKOUTSEL0.sel, value: CLKCTL.FRO_DIV2_EN}
-- {id: CLKCTL.CLKOUTSEL1.sel, value: CLKCTL.CLKOUTSEL0}
-- {id: CLKCTL.DMIC0FCLKDIV.scale, value: '1', locked: true}
-- {id: CLKCTL.DSPCPUCLKDIV.scale, value: '1', locked: true}
-- {id: CLKCTL.FLEXSPI0FCLKDIV.scale, value: '2', locked: true}
-- {id: CLKCTL.FLEXSPI0FCLKSEL.sel, value: CLKCTL.MAINCLKSELB}
-- {id: CLKCTL.FRGPLLCLKDIV.scale, value: '11', locked: true}
-- {id: CLKCTL.I3C01FCLKSDIV.scale, value: '1', locked: true}
-- {id: CLKCTL.MAINCLKSELA.sel, value: CLKCTL.FRO_DIV1_EN}
-- {id: CLKCTL.OSC_CLKSEL.sel, value: NO_CLOCK}
-- {id: CLKCTL.PFC0DIV.scale, value: '2', locked: true}
-- {id: CLKCTL.PFC1DIV.scale, value: '4', locked: true}
-- {id: CLKCTL.PLL0.denom, value: '1', locked: true}
-- {id: CLKCTL.PLL0.div, value: '22', locked: true}
-- {id: CLKCTL.PLL0.num, value: '0'}
-- {id: CLKCTL.PLL0_PFD0_BYPASS.sel, value: CLKCTL.SYSPLL0CLKSEL}
-- {id: CLKCTL.PLL0_PFD0_DIV.scale, value: '24', locked: true}
-- {id: CLKCTL.PLL0_PFD0_MUL.scale, value: '18', locked: true}
-- {id: CLKCTL.PLL0_PFD1_BYPASS.sel, value: CLKCTL.SYSPLL0CLKSEL}
-- {id: CLKCTL.PLL0_PFD2_BYPASS.sel, value: CLKCTL.SYSPLL0CLKSEL}
-- {id: CLKCTL.PLL0_PFD2_DIV.scale, value: '24', locked: true}
-- {id: CLKCTL.PLL0_PFD2_MUL.scale, value: '18', locked: true}
-- {id: CLKCTL.PLL0_PFD3_BYPASS.sel, value: CLKCTL.SYSPLL0CLKSEL}
-- {id: CLKCTL.PLL1.denom, value: '27000', locked: true}
-- {id: CLKCTL.PLL1.div, value: '22', locked: true}
-- {id: CLKCTL.PLL1.num, value: '5040', locked: true}
-- {id: CLKCTL.SYSCPUAHBCLKDIV.scale, value: '1', locked: true}
-- {id: CLKCTL.SYSTICKFCLKDIV.scale, value: '2', locked: true}
-- {id: CLKCTL.SYSTICKFCLKSEL.sel, value: CLKCTL.SYSTICKFCLKDIV}
-- {id: FRO_DIV16_EN_CFG, value: Enabled}
-- {id: FRO_DIV1_EN_CFG, value: Enabled}
-- {id: FRO_DIV2_EN_CFG, value: Enabled}
-- {id: FRO_DIV4_EN_CFG, value: Enabled}
-- {id: FRO_DIV8_EN_CFG, value: Enabled}
-- {id: PLL0_PFD0_CLK_GATE, value: Enabled}
-- {id: PLL0_PFD2_CLK_GATE, value: Enabled}
-- {id: SYSCTL_PDRUNCFG_SYSXTAL_CFG, value: Power_up}
-- {id: XTAL_LP_Enable, value: LowPowerMode}
- * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
-/* clang-format on */
-
-/*******************************************************************************
- * Variables for BOARD_BootClockRUN configuration
- ******************************************************************************/
-/*******************************************************************************
- * Code for BOARD_BootClockRUN configuration
- ******************************************************************************/
-void BOARD_BootClockRUN(void)
-{
     /* Configure LPOSC 1M */
     POWER_DisablePD(kPDRUNCFG_PD_LPOSC);               /* Power on LPOSC (1MHz) */
     CLOCK_EnableLpOscClk();                            /* Wait until LPOSC stable */
 
+    CLOCK_SetClkDiv(kCLOCK_DivSysCpuAhbClk, 1U);
+    CLOCK_AttachClk(kLPOSC_to_MAIN_CLK);
+
     /* Configure FRO clock source */
-    POWER_DisablePD(kPDRUNCFG_PD_FFRO);               /* Power on FRO (192MHz or 96MHz) */
-    /* FRO_DIV1 is always enabled and used as Main clock during PLL update. */
-    CLOCK_EnableFroClkRange(kCLOCK_Fro192M, kCLOCK_FroAllOutEn);
+    POWER_DisablePD(kPDRUNCFG_PD_FFRO);               /* Power on FRO */
+    CLOCK_EnableFroClk(kCLOCK_FroAllOutEn);
+
+    /* Configure SYSOSC clock source. */
+    /* Use the xtal osc as reference clock to trim FRO if needed */
+    if (fro_trim_hz == 250000000U) {
+        POWER_DisablePD(kPDRUNCFG_PD_SYSXTAL);                       /* Power on SYSXTAL */
+        POWER_UpdateOscSettlingTime(BOARD_SYSOSC_SETTLING_US);       /* Updated XTAL oscillator settling time */
+        CLOCK_EnableSysOscClk(true, true, BOARD_SYSOSC_SETTLING_US); /* Enable system OSC */
+        CLOCK_SetXtalFreq(BOARD_XTAL_SYS_CLK_HZ);                    /* Sets external XTAL OSC freq */
+        CLOCK_FroTuneToFreq(fro_trim_hz);
+        POWER_EnablePD(kPDRUNCFG_PD_SYSXTAL);
+    }
 
     /* Call function BOARD_FlexspiClockSafeConfig() to move FlexSPI clock to a stable clock source to avoid
        instruction/data fetch issue when updating PLL and Main clock if XIP(execute code on FLEXSPI memory). */
     BOARD_FlexspiClockSafeConfig();
 
-    /* Let CPU run on FRO with divider 2 for safe switching. */
-    CLOCK_SetClkDiv(kCLOCK_DivSysCpuAhbClk, 2);
+    /* Switch main clock to FRO */
+    CLOCK_SetClkDiv(kCLOCK_DivSysCpuAhbClk, 1U);
     CLOCK_AttachClk(kFRO_DIV1_to_MAIN_CLK);
 
-    CLOCK_SetClkDiv(kCLOCK_DivSysCpuAhbClk, 1U);         /* Set SYSCPUAHBCLKDIV divider to value 1 */
-
     /* Set up clock selectors - Attach clocks to the peripheries. */
-    CLOCK_AttachClk(kFRO_DIV1_to_MAIN_CLK);                 /* Switch MAIN_CLK to FRO_DIV1 */
     CLOCK_AttachClk(kMAIN_CLK_DIV_to_SYSTICK_CLK);                 /* Switch SYSTICK_CLK to MAIN_CLK_DIV */
     CLOCK_AttachClk(kFRO_DIV2_to_CLKOUT);                 /* Switch CLKOUT to FRO_DIV2 */
 
@@ -204,7 +138,7 @@ void BOARD_BootClockRUN(void)
     BOARD_SetFlexspiClock(FLEXSPI0, 0U, 2U);
 
     /* Set SystemCoreClock variable. */
-    SystemCoreClock = BOARD_BOOTCLOCKRUN_CORE_CLOCK;
+    SystemCoreClock = fro_trim_hz;
 
     /* Power down SYSPLL */
     POWER_EnablePD(kPDRUNCFG_PD_SYSPLL_LDO);

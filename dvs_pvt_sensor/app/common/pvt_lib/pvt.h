@@ -95,11 +95,15 @@ void PVT_Stop(void);
  * false: The library will initialize the OTP, read the delay value, and then de-initialize the OTP.
  * true: OTP initialized by the calling app. Library will read the delay value from OTP and return.
  * @param core_freq_hz Core clock frequency in hertz.
+ * @param fro_trim_freq_hz FRO trim frequency in hertz.
  * @param delay_value Pointer to a pvt_delay_t where the PVT delay value will be returned.
  * @retval 0 Successfully read the delay from OTP.
  * @retval 1 Failed to read delay from OTP.
  */
-int32_t PVT_ReadDelayFromOTP(bool otp_initialized, uint32_t core_freq_hz, pvt_delay_t *delay_value);
+int32_t PVT_ReadDelayFromOTP(bool otp_initialized,
+                             uint32_t core_freq_hz,
+                             uint32_t fro_trim_freq_hz,
+                             pvt_delay_t *delay_value);
 
 /**
  * @brief Enables the PVT ring oscillator to calculate the optimal delay value.
@@ -156,11 +160,14 @@ void PVT_DisableRingOsc(void);
  * @endcode
  *
  * @param wait_time_ms Time in milliseconds since the ring oscillator was activated.
+ * @param fro_trim_freq_hz FRO trim frequency in hertz.
  * @param delay_value Pointer to a pvt_delay_t where the PVT delay value will be placed.
  * @retval 0 Successfully read the delay from Ring Oscillator.
  * @retval 1 Failed to read delay from Ring Oscillator.
  */
-int32_t PVT_ReadDelayFromRingOsc(uint32_t wait_time_ms, pvt_delay_t *delay_value);
+int32_t PVT_ReadDelayFromRingOsc(uint32_t wait_time_ms,
+                                 uint32_t fro_trim_freq_hz,
+                                 pvt_delay_t *delay_value);
 
 /**
  * @brief Reads the current PVT delay value.
