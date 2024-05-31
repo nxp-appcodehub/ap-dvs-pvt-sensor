@@ -294,8 +294,6 @@ static void config_pvt(void) {
 
     /* Try to read delay from OTP. If unsuccessful, try to read from ring oscillator */
     status = PVT_ReadDelayFromOTP(false, CLOCK_GetFreq(kCLOCK_CoreSysClk), FRO_TRIM_FREQ_HZ, &delay);
-    PRINTF("OTP: %d\r\n", delay);
-    status = kStatus_Fail;
     if (status != kStatus_Success) {
         /* VDDCORE must == 0.9V and and temp. == 25C before calling PVT_ReadDelayFromRingOsc */
         PRINTF("\033[35;1m" \
